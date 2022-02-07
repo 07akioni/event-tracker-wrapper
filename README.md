@@ -18,7 +18,7 @@ Since code quality can be influenced by different reasons, sometimes the only co
 
 因为代码本身质量受各种因素影响，再不加日志排查的话，后果不堪设想。
 
-However there may be many conditions of logging it self:
+However there may be many conditions of logging itself:
 
 1. It may need reporting
 2. It may need to be saved locally so you can retrive the log
