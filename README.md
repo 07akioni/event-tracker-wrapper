@@ -52,6 +52,7 @@ So I try to merge those conditions in one adapter. At least I hope it can meet m
 import { ilw } from "ilw";
 
 const logger = ilw({
+  // unified logging entry
   // 统一的日志调用出口
   // report  - Whether to report
   //           是否上报
