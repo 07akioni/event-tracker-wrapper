@@ -44,7 +44,7 @@ If someone does some impilicit encapsulation of logging, it will be hard for new
 
 如果有人又做了一些隐式的封装，那么事情会变得更难收场，新加入的人会更难理解这段日志打印究竟做了啥。
 
-So I try to solve those conditions in one adapter. At least I hope it can meet most demands.
+So I try to merge those conditions in one adapter. At least I hope it can meet most demands.
 
 所以我试图把这些概念通过适配层集中然后抹平，至少要适应多数业务场景。
 
