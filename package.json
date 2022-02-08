@@ -7,6 +7,10 @@
     "build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json",
     "release": "pnpm run build && pnpm publish"
   },
+  "files": [
+    "es",
+    "lib"
+  ],
   "author": "07akioni",
   "license": "MIT",
   "devDependencies": {
