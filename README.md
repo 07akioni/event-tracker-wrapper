@@ -36,7 +36,7 @@ However there may be many conditions of logging itself:
 5. 可能需要格式化（从 Error 或 Object 变成 string），也可能不需要格式化（直接通过 console 打出来）
 6. 各种情况组合
 
-These different conditions could use different library, or even in different devices. Every collaborator may have his thought. Finally the code becomes messy. 
+These different conditions could use different library, or even in different devices. Every collaborator may have his thought. Finally the code becomes messy.
 
 这些不同的组合可能会调用不同的库，甚至还可能会跨端（多谢小程序），每个人有不同的想法，最终会将代码搅成一锅粥。
 
@@ -58,23 +58,13 @@ const logger = ilw({
   //           是否上报
   // persist - Whether to persist data
   //           是否持久化
-  // type    - type, may be 'plain' or 'event'
-  //           类型，可以是 'plain' 或者 'event'
   // meta    - Meta message, anything
   //           额外信息，随便放
-  onLog(level, messages, { report, persist, type, meta }) {
+  onLog(level, messages, { report, persist, meta }) {
     if (report) {
-      // Maybe your company's monitoring library
-      // 可以是你公司的埋点工具
-      if (type === "event") {
-        // report by eventName & params
-        // 以事件名，事件信息的方式上报
-        eventReporter.report(messages[0], messages[1]);
-      } else {
-        // report by string
-        // 以字符串形式上报
-        eventReporter.report(message.map(JSON.stringify).join(","));
-      }
+      // report by string
+      // 以字符串形式上报
+      reporter.report(message.map(JSON.stringify).join(","));
     } else if (persist) {
       // Maybe your company's client logging SDK
       // 可以是你公司的客户端日志 SDK，比如通过小程序写入客户端
@@ -83,6 +73,27 @@ const logger = ilw({
       // Or just print normally.
       // 走一波正常的日志打印
       console[level](...messages);
+    }
+  },
+  // unified event logging entry
+  // 统一的事件调用出口
+  // type   - Event type
+  //          事件类型
+  // detail - Event detail
+  //          事件参数
+  onEvent(level, { type, detail }, { report, persist, meta }) {
+    if (report) {
+      // report by eventName & params
+      // 以事件名，事件信息的方式上报
+      eventReporter.report(type, detail);
+    } else if (persist) {
+      // Maybe your company's client logging SDK
+      // 可以是你公司的客户端日志 SDK，比如通过小程序写入客户端
+      nativeLogger("event", type, detail);
+    } else {
+      // Or just print normally.
+      // 走一波正常的日志打印
+      console[level]("event", type, detail);
     }
   },
 });
