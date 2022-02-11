@@ -1,23 +1,23 @@
-export type IlwLevel = "debug" | "info" | "warn" | "error";
+export type Level = "debug" | "info" | "warn" | "error";
 
-export type PlainIlw<
+export type Ilw<
   Meta = unknown,
   Events extends Record<string, any> = Record<string, any>
-> = IlwPlainStateMutations<Meta, Events> & IlwPlainLogger;
+> = StateMutations<Meta, Events> & Logger;
 
 export type EventIlw<
   Meta = unknown,
   Events extends Record<string, any> = Record<string, any>
-> = IlwEventStateMutations<Meta> & IlwEventLogger<Events>;
+> = EventStateMutations<Meta> & EventLogger<Events>;
 
-export type IlwPlainLogger = {
+export type Logger = {
   error: (...data: unknown[]) => void;
   warn: (...data: unknown[]) => void;
   info: (...data: unknown[]) => void;
   debug: (...data: unknown[]) => void;
 };
 
-export type IlwEventLogger<
+export type EventLogger<
   Events extends Record<string, any> = Record<string, any>
 > = {
   error: <T extends keyof Events>(event: T, params: Events[T]) => void;
@@ -26,49 +26,56 @@ export type IlwEventLogger<
   debug: <T extends keyof Events>(event: T, params: Events[T]) => void;
 };
 
-export type IlwPlainStateMutations<
+export type StateMutations<
   Meta = unknown,
   Events extends Record<string, any> = Record<string, any>
 > = {
-  report: PlainIlw<Meta, Events>;
-  persist: PlainIlw<Meta, Events>;
+  report: Ilw<Meta, Events>;
+  persist: Ilw<Meta, Events>;
   event: EventIlw<Meta, Events>;
-  meta: (meta: Meta) => IlwPlainStateMutations<Meta, Events> & IlwPlainLogger;
+  meta: (meta: Meta) => StateMutations<Meta, Events> & Logger;
 };
 
-export type IlwEventStateMutations<
+export type EventStateMutations<
   Meta = unknown,
   Events extends Record<string, any> = Record<string, any>
 > = {
   report: EventIlw<Meta, Events>;
   persist: EventIlw<Meta, Events>;
-  meta: (meta: Meta) => IlwEventStateMutations<Meta> & IlwEventLogger<Events>;
+  meta: (meta: Meta) => EventStateMutations<Meta> & EventLogger<Events>;
 };
 
-export type IlwOnLogOptions<Meta = unknown> = {
+export type OnLogOptions<Meta = unknown> = {
   event: boolean;
   report: boolean;
   persist: boolean;
   meta: Meta | undefined;
 };
 
+export type OnLog<Meta = unknown> = (
+  level: Level,
+  messages: unknown[],
+  options: OnLogOptions<Meta>
+) => void;
+
+export type OnEvent<
+  Meta = unknown,
+  Events extends Record<string, unknown> = Record<string, unknown>
+> = <T extends keyof Events>(
+  level: Level,
+  event: {
+    type: T;
+    detail: Events[T];
+  },
+  options: OnLogOptions<Meta>
+) => void;
+
 export type IlwOptions<
   Meta = unknown,
   Events extends Record<string, unknown> = Record<string, unknown>
 > = {
-  onLog?: (
-    level: IlwLevel,
-    messages: unknown[],
-    options: IlwOnLogOptions<Meta>
-  ) => void;
-  onEvent?: <T extends keyof Events>(
-    level: IlwLevel,
-    event: {
-      type: T;
-      detail: Events[T];
-    },
-    options: IlwOnLogOptions<Meta>
-  ) => void;
+  onLog?: OnLog<Meta>;
+  onEvent?: OnEvent<Meta, Events>;
 } & {
   [key in Exclude<
     keyof IlwState<Meta>,
@@ -76,15 +83,18 @@ export type IlwOptions<
   >]?: IlwState<Meta>[key];
 };
 
-type IlwState<Meta = unknown> = {
+type IlwState<
+  Meta = unknown,
+  Events extends Record<string, unknown> = Record<string, unknown>
+> = {
   report: boolean;
   persist: boolean;
   event: boolean;
   meta: Meta | undefined;
   /** @private */
-  _onLog: NonNullable<IlwOptions<any>["onLog"]>;
+  _onLog: NonNullable<IlwOptions<Meta>["onLog"]>;
   /** @private */
-  _onEvent: NonNullable<IlwOptions<any, Record<string, any>>["onEvent"]>;
+  _onEvent: NonNullable<IlwOptions<Meta, Events>["onEvent"]>;
 };
 
 const ilwPrototype: ThisType<{ _state: IlwState<unknown> }> = {
@@ -191,7 +201,7 @@ export function ilw<
   Events extends Record<string, unknown> = Record<string, unknown>
 >(
   options: Omit<IlwOptions<Meta, Events>, "event"> & { event?: false }
-): PlainIlw<Meta, Events>;
+): Ilw<Meta, Events>;
 export function ilw<
   Meta = unknown,
   Events extends Record<string, unknown> = Record<string, unknown>
@@ -203,8 +213,9 @@ export function ilw<
   Events extends Record<string, unknown> = Record<string, unknown>
 >(
   options: IlwOptions<Meta, Events>
-): EventIlw<Meta, Events> | PlainIlw<Meta, Events> {
-  const nextIlw: { _state: IlwState } = Object.create(ilwPrototype);
+): EventIlw<Meta, Events> | Ilw<Meta, Events> {
+  const nextIlw: { _state: IlwState<Meta, Events> } =
+    Object.create(ilwPrototype);
   nextIlw._state = {
     report: options.report || false,
     persist: options.persist || false,
