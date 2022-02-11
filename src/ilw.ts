@@ -45,14 +45,14 @@ export type IlwEventStateMutations<
   meta: (meta: Meta) => IlwEventStateMutations<Meta> & IlwEventLogger<Events>;
 };
 
-type IlwOnLogOptions<Meta = unknown> = {
+export type IlwOnLogOptions<Meta = unknown> = {
   event: boolean;
   report: boolean;
   persist: boolean;
   meta: Meta | undefined;
 };
 
-type IlwOptions<
+export type IlwOptions<
   Meta = unknown,
   Events extends Record<string, unknown> = Record<string, unknown>
 > = {
