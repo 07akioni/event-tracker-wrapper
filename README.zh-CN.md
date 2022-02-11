@@ -21,7 +21,11 @@
   - `report` \<`?boolean`\>
   - `event` \<`?boolean`\>
   - `meta` \<`?Meta`\>
-- returns: \<`Ilw<Meta, Events> | EventIlw<Meta, Events>`\>
+- 返回:
+  - \<`Ilw<Meta, Events>`\>
+    - 如果 `options.event` 是 `undefined` 或 `false`
+  - \<`EventIlw<Meta, Events>`\>
+    - 如果 `options.event` 是 `true`
 
 ### Types
 

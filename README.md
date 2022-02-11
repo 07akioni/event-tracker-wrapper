@@ -21,7 +21,11 @@ Isomorphic logger wrapper.
   - `report` \<`?boolean`\>
   - `event` \<`?boolean`\>
   - `meta` \<`?Meta`\>
-- returns: \<`Ilw<Meta, Events> | EventIlw<Meta, Events>`\>
+- returns:
+  - \<`Ilw<Meta, Events>`\>
+    - if `options.event` is falsy
+  - \<`EventIlw<Meta, Events>`\>
+    - if `options.event` is true
 
 ### Types
 
