@@ -1,4 +1,4 @@
-# ilw
+# ilw · [![npm version](https://badge.fury.io/js/ilw.svg)](https://badge.fury.io/js/ilw)
 
 English | [中文](README.zh-CN.md)
 
