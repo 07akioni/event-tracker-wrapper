@@ -1,8 +1,9 @@
 {
   "name": "ilw",
   "version": "0.3.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Isomorphic logger wrapper",
+  "main": "lib/index.js",
+  "module": "es/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json",
     "release": "pnpm run build && pnpm publish"
