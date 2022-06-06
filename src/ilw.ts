@@ -1,236 +1,136 @@
 export type Level = "debug" | "info" | "warn" | "error";
 
-export type Ilw<
-  Meta = unknown,
-  Events extends Record<string, any> = Record<string, any>
-> = StateMutations<Meta, Events> & Logger;
-
-export type EventIlw<
-  Meta = unknown,
-  Events extends Record<string, any> = Record<string, any>
-> = EventStateMutations<Meta> & EventLogger<Events>;
-
-export type Logger = {
-  error: (...data: unknown[]) => void;
-  warn: (...data: unknown[]) => void;
-  info: (...data: unknown[]) => void;
-  debug: (...data: unknown[]) => void;
-};
-
-export type EventLogger<
-  Events extends Record<string, any> = Record<string, any>
-> = {
-  error: <T extends keyof Events>(event: T, params: Events[T]) => void;
-  warn: <T extends keyof Events>(event: T, params: Events[T]) => void;
-  info: <T extends keyof Events>(event: T, params: Events[T]) => void;
-  debug: <T extends keyof Events>(event: T, params: Events[T]) => void;
-};
-
-export type StateMutations<
-  Meta = unknown,
-  Events extends Record<string, any> = Record<string, any>
-> = {
-  report: Ilw<Meta, Events>;
-  persist: Ilw<Meta, Events>;
-  event: EventIlw<Meta, Events>;
-  meta: (meta: Meta) => StateMutations<Meta, Events> & Logger;
-};
-
-export type EventStateMutations<
-  Meta = unknown,
-  Events extends Record<string, any> = Record<string, any>
-> = {
-  report: EventIlw<Meta, Events>;
-  persist: EventIlw<Meta, Events>;
-  meta: (meta: Meta) => EventStateMutations<Meta> & EventLogger<Events>;
-};
-
-export type OnLogOptions<Meta = unknown> = {
-  event: boolean;
+export type OnLogOptions<Meta = undefined> = {
   report: boolean;
   persist: boolean;
   meta: Meta | undefined;
 };
 
-export type OnLog<Meta = unknown> = (
-  level: Level,
-  messages: unknown[],
-  options: OnLogOptions<Meta>
-) => void;
+export type OnLog<Meta = undefined> = (data: {
+  level: Level;
+  data: unknown[];
+  options: OnLogOptions<Meta>;
+}) => void;
 
 export type OnEvent<
-  Meta = unknown,
+  Meta = undefined,
   Events extends Record<string, unknown> = Record<string, unknown>
-> = <T extends keyof Events>(
-  level: Level,
+> = <T extends keyof Events>(data: {
+  level: Level;
   event: {
     type: T;
-    detail: Events[T];
-  },
-  options: OnLogOptions<Meta>
+    data: Events[T];
+  };
+  options: OnLogOptions<Meta>;
+}) => void;
+
+export type OnMarkData<Meta, Mark> = {
+  level: Level;
+  /**
+   * duration after timeline is created
+   */
+  duration: number;
+  time: number;
+  mark: Mark;
+  options: OnLogOptions<Meta>;
+};
+
+export type OnMark<
+  Meta = undefined,
+  Marks extends Record<string, unknown> = Record<string, unknown>
+> = <T extends keyof Marks>(
+  data: OnMarkData<
+    Meta,
+    {
+      type: T;
+      data: Marks[T];
+    }
+  > & {
+    history: Array<
+      {
+        [Key in keyof Marks]: Marks[Key];
+      }[keyof Marks]
+    >;
+  }
 ) => void;
 
-export type IlwOptions<
-  Meta = unknown,
-  Events extends Record<string, unknown> = Record<string, unknown>
+export type Timeline<
+  Meta = undefined,
+  Marks extends Record<string, unknown> = Record<string, unknown>
 > = {
-  onLog?: OnLog<Meta>;
-  onEvent?: OnEvent<Meta, Events>;
-} & {
-  [key in Exclude<
-    keyof IlwState<Meta>,
-    "_onLog" | "_onEvent"
-  >]?: IlwState<Meta>[key];
+  markDebug: <T extends keyof Marks>(
+    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  ) => void;
+  markInfo: <T extends keyof Marks>(
+    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  ) => void;
+  markWarn: <T extends keyof Marks>(
+    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  ) => void;
+  markError: <T extends keyof Marks>(
+    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  ) => void;
+  invalidate: () => void;
 };
 
-type IlwState<
-  Meta = unknown,
-  Events extends Record<string, unknown> = Record<string, unknown>
+export type EventParam<Event, Meta = undefined> = Event &
+  (undefined extends Meta ? { meta?: Meta } : { meta: Meta });
+
+export type LogParam<Meta = undefined> = {
+  data: unknown[];
+} & (undefined extends Meta ? { meta?: Meta } : { meta: Meta });
+
+export type Logger<
+  Meta = undefined,
+  Events extends Record<string, unknown> = Record<string, unknown>,
+  TimelineMarks extends Record<string, Record<string, unknown>> = Record<
+    string,
+    Record<string, unknown>
+  >
 > = {
-  report: boolean;
-  persist: boolean;
-  event: boolean;
-  meta: Meta | undefined;
-  /** @private */
-  _onLog: NonNullable<IlwOptions<Meta>["onLog"]>;
-  /** @private */
-  _onEvent: NonNullable<IlwOptions<Meta, Events>["onEvent"]>;
+  eventDebug: <T extends keyof Events>(
+    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  ) => void;
+  eventInfo: <T extends keyof Events>(
+    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  ) => void;
+  eventWarn: <T extends keyof Events>(
+    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  ) => void;
+  eventError: <T extends keyof Events>(
+    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  ) => void;
+  debug: (param: LogParam<Meta>) => void;
+  info: (param: LogParam<Meta>) => void;
+  warn: (param: LogParam<Meta>) => void;
+  error: (param: LogParam<Meta>) => void;
+  createTimeline: <T extends keyof TimelineMarks>(
+    type: T
+  ) => Timeline<Meta, TimelineMarks[T]>;
 };
 
-const ilwPrototype: ThisType<{ _state: IlwState<unknown> }> = {
-  debug(...args: any[]): void {
-    if (this._state.event) {
-      this._state._onEvent(
-        "debug",
-        { type: args[0], detail: args[1] },
-        this._state
-      );
-    } else {
-      this._state._onLog("debug", args, this._state);
-    }
-  },
-  info(...args: any[]): void {
-    if (this._state.event) {
-      this._state._onEvent(
-        "info",
-        { type: args[0], detail: args[1] },
-        this._state
-      );
-    } else {
-      this._state._onLog("info", args, this._state);
-    }
-  },
-  warn(...args: any[]): void {
-    if (this._state.event) {
-      this._state._onEvent(
-        "warn",
-        { type: args[0], detail: args[1] },
-        this._state
-      );
-    } else {
-      this._state._onLog("warn", args, this._state);
-    }
-  },
-  error(...args: any[]): void {
-    if (this._state.event) {
-      this._state._onEvent(
-        "error",
-        { type: args[0], detail: args[1] },
-        this._state
-      );
-    } else {
-      this._state._onLog("error", args, this._state);
-    }
-  },
-  get report() {
-    const nextIlw: { _state: IlwState } = Object.create(ilwPrototype);
-    const _state = this._state;
-    nextIlw._state = {
-      report: true,
-      persist: _state.persist,
-      event: _state.event,
-      meta: _state.meta,
-      _onLog: _state._onLog,
-      _onEvent: _state._onEvent,
-    };
-    return nextIlw;
-  },
-  get persist() {
-    const nextIlw: { _state: IlwState } = Object.create(ilwPrototype);
-    const _state = this._state;
-    nextIlw._state = {
-      report: _state.report,
-      persist: true,
-      event: _state.event,
-      meta: _state.meta,
-      _onLog: _state._onLog,
-      _onEvent: _state._onEvent,
-    };
-    return nextIlw;
-  },
-  get event() {
-    const nextIlw: { _state: IlwState } = Object.create(ilwPrototype);
-    const _state = this._state;
-    nextIlw._state = {
-      report: _state.report,
-      persist: _state.persist,
-      event: true,
-      meta: _state.meta,
-      _onLog: _state._onLog,
-      _onEvent: _state._onEvent,
-    };
-    return nextIlw;
-  },
-  meta(meta: any) {
-    const nextIlw: { _state: IlwState } = Object.create(ilwPrototype);
-    const _state = this._state;
-    nextIlw._state = {
-      report: _state.report,
-      persist: _state.persist,
-      event: _state.event,
-      meta: meta,
-      _onLog: _state._onLog,
-      _onEvent: _state._onEvent,
-    };
-    return nextIlw;
-  },
+export type LoggerOptions<
+  Meta = undefined,
+  Events extends Record<string, unknown> = Record<string, unknown>,
+  Marks extends Record<string, Record<string, unknown>> = Record<
+    string,
+    Record<string, unknown>
+  >
+> = {
+  onLog: OnLog<Meta>;
+  onEvent: OnEvent<Meta, Events>;
+  onMark: OnMark<Marks>;
 };
 
-export function ilw<
-  Meta = unknown,
-  Events extends Record<string, unknown> = Record<string, unknown>
+export function createLogger<
+  Meta = undefined,
+  Events extends Record<string, unknown> = Record<string, unknown>,
+  Marks extends Record<string, Record<string, unknown>> = Record<
+    string,
+    Record<string, unknown>
+  >
 >(
-  options: Omit<IlwOptions<Meta, Events>, "event"> & { event?: false }
-): Ilw<Meta, Events>;
-export function ilw<
-  Meta = unknown,
-  Events extends Record<string, unknown> = Record<string, unknown>
->(
-  options: Omit<IlwOptions<Meta, Events>, "event"> & { event: true }
-): EventIlw<Meta, Events>;
-export function ilw<
-  Meta = unknown,
-  Events extends Record<string, unknown> = Record<string, unknown>
->(
-  options: IlwOptions<Meta, Events>
-): EventIlw<Meta, Events> | Ilw<Meta, Events> {
-  const nextIlw: { _state: IlwState<Meta, Events> } =
-    Object.create(ilwPrototype);
-  nextIlw._state = {
-    report: options.report || false,
-    persist: options.persist || false,
-    event: options.event || false,
-    meta: options.meta,
-    _onLog:
-      options.onLog ||
-      (() => {
-        throw new Error("[ilw]: options.onLog is not provided");
-      }),
-    _onEvent:
-      options.onEvent ||
-      (() => {
-        throw new Error("[ilw]: options.onEvent is not provided");
-      }),
-  };
-  return nextIlw as any;
+  options: LoggerOptions<Meta, Events, Marks>
+): LoggerOptions<Meta, Events, Marks> {
+  return {} as any;
 }

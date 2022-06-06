@@ -126,6 +126,58 @@ const logger = ilw({
   },
 });
 
+const {
+  log,
+  event,
+  logTimeline
+} = ilw()
+
+log.debug()
+log.info()
+log.warn()
+log.error()
+
+log.eventInfo()
+log.eventWarn()
+log.eventError()
+log.eventDebug()
+
+const timeline = log.timeline()
+
+timeline.markInfo({
+  name: XXX,
+})
+timeline.markError()
+timeline.markWarn()
+timeline.markDebug()
+timeline.invalidate()
+
+
+const timing = logger.timeline()
+
+timeline.mark.info({
+  data: XXX,
+  options: {
+    
+  }
+})
+
+timeline.mark.info({})
+
+logger.info({
+  data: XXX,
+  options: {
+    report: true,
+    toast: true,
+  }
+})
+
+logger.event.info({
+  name: "eventName",
+  data: XXX,
+  options: {}
+})
+
 // 上报
 logger.report.info("xxx", "yyy");
 // 持久化
