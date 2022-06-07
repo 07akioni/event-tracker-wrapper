@@ -1,112 +1,191 @@
 export type Level = "debug" | "info" | "warn" | "error";
 
-export type OnLogOptions<Meta = undefined> = {
-  report: boolean;
-  persist: boolean;
-  meta: Meta | undefined;
-};
+export type OnLogOptions =
+  | {
+      report?: boolean;
+      persist?: boolean;
+    }
+  | undefined;
+
+export type OnLogMeta<Meta = undefined> = undefined extends Meta
+  ? undefined | { meta?: Meta }
+  : { meta: Meta };
 
 export type OnLog<Meta = undefined> = (data: {
   level: Level;
   data: unknown[];
-  options: OnLogOptions<Meta>;
+  meta: OnLogMeta<Meta>;
+  options: OnLogOptions;
 }) => void;
 
 export type OnEvent<
   Meta = undefined,
   Events extends Record<string, unknown> = Record<string, unknown>
-> = <T extends keyof Events>(data: {
+> = (data: {
   level: Level;
   event: {
-    type: T;
-    data: Events[T];
-  };
-  options: OnLogOptions<Meta>;
+    [Key in keyof Events]: { name: Key; data: Events[Key] };
+  }[keyof Events];
+  meta: OnLogMeta<Meta>;
+  options: OnLogOptions;
 }) => void;
 
-export type OnMarkData<Meta, Mark> = {
-  level: Level;
-  /**
-   * duration after timeline is created
-   */
-  duration: number;
-  time: number;
-  mark: Mark;
-  options: OnLogOptions<Meta>;
-};
+export type OnMarkData<
+  Meta = undefined,
+  Marks extends Record<string, Record<string, unknown>> = Record<
+    string,
+    Record<string, unknown>
+  >
+> = {
+  [TimelineName in keyof Marks]: {
+    level: Level;
+    duration: number;
+    time: number;
+    meta: OnLogMeta<Meta>;
+    options: OnLogOptions;
+    timelineName: TimelineName;
+    mark: {
+      [MarkName in keyof Marks[TimelineName]]: {
+        name: MarkName;
+        data: Marks[TimelineName][MarkName];
+      };
+    }[keyof Marks[TimelineName]];
+  };
+}[keyof Marks];
 
 export type OnMark<
   Meta = undefined,
-  Marks extends Record<string, unknown> = Record<string, unknown>
-> = <T extends keyof Marks>(
-  data: OnMarkData<
-    Meta,
-    {
-      type: T;
-      data: Marks[T];
-    }
-  > & {
-    history: Array<
-      {
-        [Key in keyof Marks]: Marks[Key];
-      }[keyof Marks]
-    >;
-  }
-) => void;
+  Marks extends Record<string, Record<string, unknown>> = Record<
+    string,
+    Record<string, unknown>
+  >
+> = (data: OnMarkData<Meta, Marks>) => void;
 
 export type Timeline<
   Meta = undefined,
   Marks extends Record<string, unknown> = Record<string, unknown>
 > = {
-  markDebug: <T extends keyof Marks>(
-    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  debug: (
+    data: {
+      [MarkName in keyof Marks]: {
+        name: MarkName;
+        data: Marks[MarkName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Marks]
   ) => void;
-  markInfo: <T extends keyof Marks>(
-    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  info: (
+    data: {
+      [MarkName in keyof Marks]: {
+        name: MarkName;
+        data: Marks[MarkName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Marks]
   ) => void;
-  markWarn: <T extends keyof Marks>(
-    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  warn: (
+    data: {
+      [MarkName in keyof Marks]: {
+        name: MarkName;
+        data: Marks[MarkName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Marks]
   ) => void;
-  markError: <T extends keyof Marks>(
-    event: EventParam<{ type: T; data: Marks[T] }, Meta>
+  error: (
+    data: {
+      [MarkName in keyof Marks]: {
+        name: MarkName;
+        data: Marks[MarkName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Marks]
   ) => void;
-  invalidate: () => void;
 };
 
-export type EventParam<Event, Meta = undefined> = Event &
-  (undefined extends Meta ? { meta?: Meta } : { meta: Meta });
+export type Logger<Meta = undefined> = {
+  debug: (data: {
+    data: unknown[];
+    meta: OnLogMeta<Meta>;
+    options: OnLogOptions;
+  }) => void;
+  info: (data: {
+    data: unknown[];
+    meta: OnLogMeta<Meta>;
+    options: OnLogOptions;
+  }) => void;
+  warn: (data: {
+    data: unknown[];
+    meta: OnLogMeta<Meta>;
+    options: OnLogOptions;
+  }) => void;
+  error: (data: {
+    data: unknown[];
+    meta: OnLogMeta<Meta>;
+    options: OnLogOptions;
+  }) => void;
+};
 
-export type LogParam<Meta = undefined> = {
-  data: unknown[];
-} & (undefined extends Meta ? { meta?: Meta } : { meta: Meta });
-
-export type Logger<
+export type TimelineLogger<
   Meta = undefined,
-  Events extends Record<string, unknown> = Record<string, unknown>,
   TimelineMarks extends Record<string, Record<string, unknown>> = Record<
     string,
     Record<string, unknown>
   >
 > = {
-  eventDebug: <T extends keyof Events>(
-    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  create: <N extends keyof TimelineMarks>(
+    name: N
+  ) => Timeline<Meta, TimelineMarks[N]>;
+};
+
+export type EventLogger<
+  Meta = undefined,
+  Events extends Record<string, unknown> = Record<string, unknown>
+> = {
+  debug: (
+    event: {
+      [EventName in keyof Events]: {
+        name: EventName;
+        data: Events[EventName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Events]
   ) => void;
-  eventInfo: <T extends keyof Events>(
-    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  info: (
+    event: {
+      [EventName in keyof Events]: {
+        name: EventName;
+        data: Events[EventName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Events]
   ) => void;
-  eventWarn: <T extends keyof Events>(
-    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  warn: (
+    event: {
+      [EventName in keyof Events]: {
+        name: EventName;
+        data: Events[EventName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Events]
   ) => void;
-  eventError: <T extends keyof Events>(
-    event: EventParam<{ type: T; data: Events[T] }, Meta>
+  error: (
+    event: {
+      [EventName in keyof Events]: {
+        name: EventName;
+        data: Events[EventName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Events]
   ) => void;
-  debug: (param: LogParam<Meta>) => void;
-  info: (param: LogParam<Meta>) => void;
-  warn: (param: LogParam<Meta>) => void;
-  error: (param: LogParam<Meta>) => void;
-  createTimeline: <T extends keyof TimelineMarks>(
-    type: T
-  ) => Timeline<Meta, TimelineMarks[T]>;
 };
 
 export type LoggerOptions<
@@ -119,7 +198,7 @@ export type LoggerOptions<
 > = {
   onLog: OnLog<Meta>;
   onEvent: OnEvent<Meta, Events>;
-  onMark: OnMark<Marks>;
+  onMark: OnMark<Meta, Marks>;
 };
 
 export function createLogger<
@@ -130,7 +209,111 @@ export function createLogger<
     Record<string, unknown>
   >
 >(
-  options: LoggerOptions<Meta, Events, Marks>
-): LoggerOptions<Meta, Events, Marks> {
-  return {} as any;
+  loggerOptions: LoggerOptions<Meta, Events, Marks>
+): {
+  logger: Logger<Meta>;
+  eventLogger: EventLogger<Meta, Events>;
+  timeline: {
+    create: <T extends keyof Marks>(name: T) => Timeline<Meta, Marks[T]>;
+  };
+} {
+  const createLogger = (level: Level) => {
+    return ({
+      data,
+      options,
+      meta,
+    }: {
+      data: unknown[];
+      meta: OnLogMeta<Meta>;
+      options: OnLogOptions;
+    }) => {
+      loggerOptions.onLog({
+        level,
+        data,
+        options,
+        meta,
+      });
+    };
+  };
+  const createEventLogger = (level: Level) => {
+    return ({
+      name,
+      data,
+      meta,
+      options,
+    }: {
+      [EventName in keyof Events]: {
+        name: EventName;
+        data: Events[EventName];
+        meta: OnLogMeta<Meta>;
+        options: OnLogOptions;
+      };
+    }[keyof Events]) => {
+      loggerOptions.onEvent({
+        level,
+        event: {
+          name,
+          data,
+        },
+        options,
+        meta,
+      });
+    };
+  };
+  return {
+    logger: {
+      debug: createLogger("debug"),
+      info: createLogger("info"),
+      warn: createLogger("warn"),
+      error: createLogger("error"),
+    },
+    eventLogger: {
+      debug: createEventLogger("debug"),
+      info: createEventLogger("info"),
+      warn: createEventLogger("warn"),
+      error: createEventLogger("error"),
+    },
+    timeline: {
+      create: (timelineName) => {
+        let startTime: number | undefined = undefined;
+        const history: Array<OnMarkData<Meta, Marks>> = [];
+        type N = typeof timelineName;
+        const createTimelineLogger: (level: Level) => (
+          mark: {
+            [MarkName in keyof Marks[N]]: {
+              name: MarkName;
+              data: Marks[N][MarkName];
+              meta: OnLogMeta<Meta>;
+              options: OnLogOptions;
+            };
+          }[keyof Marks[N]]
+        ) => void = (level) => {
+          return ({ name, data, meta, options }) => {
+            if (startTime === undefined) {
+              startTime = performance.now();
+            }
+            const onMarkData: OnMarkData<Meta, Marks> = {
+              timelineName,
+              level,
+              meta,
+              mark: { name, data } as any,
+              options,
+              duration: performance.now() - startTime,
+              time: Date.now(),
+            };
+            loggerOptions.onMark(
+              Object.assign({ history: Array.from(history) }, onMarkData)
+            );
+            history.push(onMarkData);
+          };
+        };
+        return {
+          debug: createTimelineLogger("debug"),
+          info: createTimelineLogger("info"),
+          warn: createTimelineLogger("warn"),
+          error: createTimelineLogger("error"),
+        };
+      },
+    },
+  };
 }
