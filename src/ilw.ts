@@ -220,7 +220,23 @@ export function createLogger<
     mark: DefaultOptions;
   }
 >(
-  loggerOptions: LoggerOptions<Events, Marks, Meta, Options>
+  loggerOptions: LoggerOptions<Events, Marks, Meta, Options> = {
+    onEvent: ({ level, event, options, ...meta }) => {
+      console[level]("[ilw/event]:", { event, options, meta });
+    },
+    onLog: ({ level, message, options, ...meta }) => {
+      console[level]("[ilw/log]:", { message, options, meta });
+    },
+    onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
+      console[level]("[ilw/mark]:", {
+        timeline,
+        mark,
+        duration,
+        options,
+        meta,
+      });
+    },
+  }
 ): Logger<Meta["log"], Options["log"]> & {
   event: EventLogger<Events, Meta["event"], Options["event"]>;
 } & {
