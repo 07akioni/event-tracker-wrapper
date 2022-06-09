@@ -6,36 +6,57 @@ type Events = {
 };
 
 type Timelines = {
-  timeline1: {
-    timeline1Event1: number;
-    timeline1Event2: string;
+  document: {
+    fcp: undefined;
   };
-  timeline2: {
-    timeline2Event1: string;
-    timeline2Event2: number;
+  approvalRecordGetData: {
+    success: undefined;
+    error: undefined;
   };
 };
 
-const {
-  logger,
-  eventLogger,
-  timeline
-} = createLogger<undefined, Events, Timelines>({
-  onEvent: () => {},
-  onLog: () => {},
-  onMark: () => {},
+const log = createLogger<Events, Timelines>({
+  onEvent: ({ level, event, options: {} }) => {
+    console[level]("[event]", event);
+  },
+  onLog: ({ level, message, options: {} }) => {
+    console[level]("[log]", message);
+  },
+  onMark: ({ level, mark, timeline, duration, options }) => {
+    console[level]("[mark]", {
+      timeline,
+      mark,
+      duration,
+      options,
+    });
+  },
 });
 
-const timeEvent = timeline.create('timeline1')
+log.info({
+  message: "",
+});
 
-// logger.event.info(undefined, { name: "event1", data: 1 });
-// logger.event.info(undefined, { name: "event1", data: 1 });
+log.event.info({
+  name: "event1",
+  data: 1,
+});
 
-// const timeline = logger.createTimeline("timeline1");
-// timeline.info(
-//   {},
-//   {
-//     name: "timeline1Event1",
-//     data: 1,
-//   }
-// );
+const timeline = log.timeline({
+  name: "approvalRecordGetData",
+  onResolve: (self) => {
+    console.log("resolve");
+    self.error({
+      name: "success",
+    });
+  },
+  onReject: (self) => {
+    console.log("resolve");
+    self.error({
+      name: "success",
+    });
+  },
+});
+
+const [timelineForked1, timelineForked2] = timeline.all(2);
+timelineForked1.resolve();
+timelineForked2.resolve();
