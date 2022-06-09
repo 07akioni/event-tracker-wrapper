@@ -333,6 +333,7 @@ export function createLogger<
             duration: performance.now() - startTime,
             time: Date.now(),
           };
+          loggerOptions.onMark(onMarkData)
         };
       };
       type InnerTimeline = Timeline<Marks[N], Meta["mark"], Options["mark"]>;
