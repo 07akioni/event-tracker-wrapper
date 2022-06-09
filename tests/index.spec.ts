@@ -1,8 +1,7 @@
 import { createLogger } from "../src";
 
 type Events = {
-  event1: number;
-  event2: string;
+  departmentClick: { departmentId: string };
 };
 
 type Timelines = {
@@ -23,6 +22,15 @@ type Timelines = {
 };
 
 const log = createLogger<Events, Timelines>();
+
+log.event.info({
+  name: "departmentClick",
+  data: {
+    departmentId: "xxx",
+  },
+});
+
+const documentTimeline = log.timeline({ name: "document" });
 
 const timeline = log.timeline({
   name: "detailFetchData",
@@ -47,23 +55,31 @@ const timeline = log.timeline({
   },
 });
 
-const [fetchProcessRelevantUsersData, fetchDetailData, fetchApprovalData] =
-  timeline.all(3);
+const [
+  fetchProcessRelevantUsersDataTimeline,
+  fetchDetailDataTimeline,
+  fetchApprovalDataTimeline,
+] = timeline.all(3);
 
-fetchProcessRelevantUsersData.info({
+fetchProcessRelevantUsersDataTimeline.info({
   name: "fetchProcessRelevantUsersDataSuccess",
   message: "获取流程干系人成功",
 });
-fetchProcessRelevantUsersData.resolve();
+fetchProcessRelevantUsersDataTimeline.resolve();
 
-fetchDetailData.info({
+fetchDetailDataTimeline.info({
   name: "fetchDetailDataSuccess",
   message: "获取表单详情成功",
 });
-fetchDetailData.resolve();
+fetchDetailDataTimeline.resolve();
 
-fetchApprovalData.error({
+fetchApprovalDataTimeline.error({
   name: "fetchApprovalDataFail",
   message: "获取审批组件信息失败",
 });
-fetchApprovalData.reject();
+fetchApprovalDataTimeline.reject();
+
+documentTimeline.info({
+  name: "fcp",
+  message: "document fcp",
+});
