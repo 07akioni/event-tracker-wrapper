@@ -10,6 +10,7 @@ type Timelines = {
     fcp: undefined;
   };
   detailFetchData: {
+    start: undefined;
     success: undefined;
     fail: Error;
     fetchProcessRelevantUsersDataSuccess: undefined;
@@ -25,6 +26,12 @@ const log = createLogger<Events, Timelines>();
 
 const timeline = log.timeline({
   name: "detailFetchData",
+  onReady(self) {
+    self.info({
+      name: "start",
+      message: "开始获取单据详情信息",
+    });
+  },
   onResolve(self) {
     self.info({
       name: "success",
