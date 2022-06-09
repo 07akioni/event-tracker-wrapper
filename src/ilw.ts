@@ -104,7 +104,7 @@ export type Timeline<
     length: T
   ) => Tuple<T, Timeline<Marks, Meta, Options>>;
   resolve: () => void;
-  reject: () => void;
+  reject: (reason?: unknown) => void;
   debug: Log;
   info: Log;
   warn: Log;
@@ -242,11 +242,13 @@ export function createLogger<
 } & {
   timeline: <T extends keyof Marks>(data: {
     name: T;
+    onReady?: (self: Timeline<Marks[T], Meta["mark"], Options["mark"]>) => void;
     onResolve?: (
       self: Timeline<Marks[T], Meta["mark"], Options["mark"]>
     ) => void;
     onReject?: (
-      self: Timeline<Marks[T], Meta["mark"], Options["mark"]>
+      self: Timeline<Marks[T], Meta["mark"], Options["mark"]>,
+      reason: unknown
     ) => void;
   }) => Timeline<Marks[T], Meta["mark"], Options["mark"]>;
 } {
@@ -305,8 +307,8 @@ export function createLogger<
       warn: createEventLogger("warn"),
       error: createEventLogger("error"),
     },
-    timeline: ({ name: timelineName, onReject, onResolve }) => {
-      let startTime: number | undefined = undefined;
+    timeline: ({ name: timelineName, onReady, onReject, onResolve }) => {
+      let inReadyScope = true;
       type N = typeof timelineName;
       const createTimelineLogger: (level: Level) => (
         mark: {
@@ -319,9 +321,6 @@ export function createLogger<
         }[keyof Marks[N]]
       ) => void = (level) => {
         return ({ name, data, message, options, ...meta }) => {
-          if (startTime === undefined) {
-            startTime = performance.now();
-          }
           const onMarkData: OnMarkData<Marks, Meta["mark"], Options["mark"]> = {
             ...(meta as unknown as Meta["mark"]),
             timeline: {
@@ -330,16 +329,15 @@ export function createLogger<
             level,
             mark: { name, message, data } as any,
             options,
-            duration: performance.now() - startTime,
-            time: Date.now(),
+            duration: inReadyScope ? 0 : performance.now() - startTime,
           };
-          loggerOptions.onMark(onMarkData)
+          loggerOptions.onMark(onMarkData);
         };
       };
       type InnerTimeline = Timeline<Marks[N], Meta["mark"], Options["mark"]>;
       const createTimeline = (parentHandle: {
         resolve: (timeline: InnerTimeline) => void;
-        reject: (timeline: InnerTimeline) => void;
+        reject: (timeline: InnerTimeline, reason: unknown) => void;
       }): InnerTimeline => {
         let forked = false;
         let settled = false;
@@ -361,10 +359,10 @@ export function createLogger<
                         }
                       }
                     },
-                    reject: (t) => {
+                    reject: (t, reason) => {
                       if (!settled) {
                         settled = true;
-                        parentHandle.reject(t);
+                        parentHandle.reject(t, reason);
                       }
                     },
                   })
@@ -396,10 +394,10 @@ export function createLogger<
                         parentHandle.resolve(t);
                       }
                     },
-                    reject: (t) => {
+                    reject: (t, reason) => {
                       if (!settled) {
                         settled = true;
-                        parentHandle.reject(t);
+                        parentHandle.reject(t, reason);
                       }
                     },
                   })
@@ -427,14 +425,14 @@ export function createLogger<
             settled = true;
             parentHandle.resolve(timeline);
           },
-          reject: () => {
+          reject: (reason?: unknown) => {
             if (forked) {
               throw new Error(
                 "[ilw]: timeline has called all or race, reject can't be called"
               );
             }
             settled = true;
-            parentHandle.reject(timeline);
+            parentHandle.reject(timeline, reason);
           },
           debug: createTimelineLogger("debug"),
           info: createTimelineLogger("info"),
@@ -443,14 +441,20 @@ export function createLogger<
         };
         return timeline;
       };
-      return createTimeline({
+      const timeline = createTimeline({
         resolve: (timeline) => {
           onResolve?.(timeline);
         },
-        reject: (timeline) => {
-          onReject?.(timeline);
+        reject: (timeline, reason) => {
+          onReject?.(timeline, reason);
         },
       });
+      const startTime = performance.now();
+      if (onReady) {
+        onReady(timeline);
+      }
+      inReadyScope = false;
+      return timeline;
     },
   };
 }
