@@ -16,18 +16,19 @@ type Timelines = {
 };
 
 const log = createLogger<Events, Timelines>({
-  onEvent: ({ level, event, options: {} }) => {
-    console[level]("[event]", event);
+  onEvent: ({ level, event, options, ...meta }) => {
+    console[level]("[ilw/event]", { event, options, meta });
   },
-  onLog: ({ level, message, options: {} }) => {
-    console[level]("[log]", message);
+  onLog: ({ level, message, options, ...meta }) => {
+    console[level]("[ilw/log]", { message, options, meta });
   },
-  onMark: ({ level, mark, timeline, duration, options }) => {
-    console[level]("[mark]", {
+  onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
+    console[level]("[ilw/mark]", {
       timeline,
       mark,
       duration,
       options,
+      meta,
     });
   },
 });

@@ -291,8 +291,6 @@ export function createLogger<
     },
     timeline: ({ name: timelineName, onReject, onResolve }) => {
       let startTime: number | undefined = undefined;
-      const history: Array<OnMarkData<Marks, Meta["mark"], Options["mark"]>> =
-        [];
       type N = typeof timelineName;
       const createTimelineLogger: (level: Level) => (
         mark: {
@@ -319,10 +317,6 @@ export function createLogger<
             duration: performance.now() - startTime,
             time: Date.now(),
           };
-          loggerOptions.onMark(
-            Object.assign({ history: Array.from(history) }, onMarkData)
-          );
-          history.push(onMarkData);
         };
       };
       type InnerTimeline = Timeline<Marks[N], Meta["mark"], Options["mark"]>;
