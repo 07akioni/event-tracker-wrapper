@@ -21,13 +21,26 @@ type Timelines = {
   };
 };
 
-const log = createLogger<Events, Timelines>();
+const log = createLogger<
+  Events,
+  Timelines,
+  {
+    log: { toast: boolean; showToastIcon?: boolean };
+    event: undefined;
+    mark: undefined;
+  }
+>();
 
 log.event.info({
   name: "departmentClick",
   data: {
     departmentId: "xxx",
   },
+});
+
+log.info({
+  message: "1234",
+  options: { toast: true, showToastIcon: false },
 });
 
 const documentTimeline = log.timeline({ name: "document" });

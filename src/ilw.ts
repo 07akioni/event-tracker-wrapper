@@ -1,22 +1,37 @@
 export type Level = "debug" | "info" | "warn" | "error";
 
-type DefaultMeta = {};
-type DefaultOptions =
+type DefaultLogMeta = {};
+type DefaultEventMeta = {};
+type DefaultMarkMeta = {};
+export type DefaultMeta = {
+  log: DefaultLogMeta;
+  event: DefaultEventMeta;
+  mark: DefaultMarkMeta;
+};
+
+type DefaultLogOptions =
   | undefined
   | {
       persist?: boolean;
       report?: boolean;
     };
+type DefaultEventOptions = DefaultLogOptions;
+type DefaultMarkOptions = DefaultLogOptions;
+export type DefaultOptions = {
+  log: DefaultLogOptions;
+  event: DefaultEventOptions;
+  mark: DefaultMarkOptions;
+};
 
-export type OnLogData<Data = undefined> = undefined extends Data
+export type OnLogData<Data> = undefined extends Data
   ? { data?: Data }
   : { data: Data };
 
-export type OnLogOptions<Options = DefaultOptions> = undefined extends Options
+export type OnLogOptions<Options> = undefined extends Options
   ? { options?: Options }
   : { options: Options };
 
-export type OnLog<Meta = DefaultMeta, Options = DefaultOptions> = (
+export type OnLog<Options = DefaultLogOptions, Meta = DefaultLogMeta> = (
   data: {
     level: Level;
     message: string | undefined;
@@ -26,8 +41,8 @@ export type OnLog<Meta = DefaultMeta, Options = DefaultOptions> = (
 
 export type OnEvent<
   Events extends Record<string, unknown> = Record<string, unknown>,
-  Meta = DefaultMeta,
-  Options = DefaultOptions
+  Options = DefaultEventOptions,
+  Meta = DefaultEventMeta
 > = (
   data: {
     level: Level;
@@ -46,8 +61,8 @@ export type OnMarkData<
     string,
     Record<string, unknown>
   >,
-  Meta = DefaultMeta,
-  Options = DefaultOptions
+  Options = DefaultMarkOptions,
+  Meta = DefaultMarkMeta
 > = {
   [TimelineName in keyof Marks]: {
     level: Level;
@@ -70,9 +85,9 @@ export type OnMark<
     string,
     Record<string, unknown>
   >,
-  Meta = DefaultMeta,
-  Options = DefaultOptions
-> = (data: OnMarkData<Marks, Meta, Options>) => void;
+  Options = DefaultMarkOptions,
+  Meta = DefaultMarkMeta
+> = (data: OnMarkData<Marks, Options, Meta>) => void;
 
 type Tuple<
   Length extends number,
@@ -84,8 +99,8 @@ type Tuple<
 
 export type Timeline<
   Marks extends Record<string, unknown> = Record<string, unknown>,
-  Meta = DefaultMeta,
-  Options = DefaultOptions,
+  Options = DefaultMarkOptions,
+  Meta = DefaultMarkMeta,
   Log = (
     data: {
       [MarkName in keyof Marks]: {
@@ -99,10 +114,10 @@ export type Timeline<
 > = {
   all: <T extends number>(
     length: T
-  ) => Tuple<T, Timeline<Marks, Meta, Options>>;
+  ) => Tuple<T, Timeline<Marks, Options, Meta>>;
   race: <T extends number>(
     length: T
-  ) => Tuple<T, Timeline<Marks, Meta, Options>>;
+  ) => Tuple<T, Timeline<Marks, Options, Meta>>;
   resolve: () => void;
   reject: (reason?: unknown) => void;
   debug: Log;
@@ -111,9 +126,9 @@ export type Timeline<
   error: Log;
 };
 
-export type Logger<
-  Meta = DefaultMeta,
+export type PlainLogger<
   Options = DefaultOptions,
+  Meta = DefaultLogMeta,
   Log = (
     data: {
       message?: string;
@@ -132,22 +147,22 @@ export type TimelineLogger<
     string,
     Record<string, unknown>
   >,
-  Meta = DefaultMeta,
-  Options = DefaultOptions
+  Options = DefaultOptions,
+  Meta = DefaultMarkMeta
 > = {
   create: <N extends keyof TimelineMarks>(
     name: N,
     listeners?: {
-      onResolve?: (self: Timeline<TimelineMarks[N], Meta, Options>) => void;
-      onReject?: (self: Timeline<TimelineMarks[N], Meta, Options>) => void;
+      onResolve?: (self: Timeline<TimelineMarks[N], Options, Meta>) => void;
+      onReject?: (self: Timeline<TimelineMarks[N], Options, Meta>) => void;
     }
-  ) => Timeline<TimelineMarks[N], Meta, Options>;
+  ) => Timeline<TimelineMarks[N], Options, Meta>;
 };
 
 export type EventLogger<
   Events extends Record<string, unknown> = Record<string, unknown>,
-  Meta = undefined,
   Options = DefaultOptions,
+  Meta = undefined,
   Log = (
     event: {
       [EventName in keyof Events]: {
@@ -171,15 +186,6 @@ export type LoggerOptions<
     string,
     Record<string, unknown>
   >,
-  Meta extends {
-    log: {};
-    event: {};
-    mark: {};
-  } = {
-    log: {};
-    event: {};
-    mark: {};
-  },
   Options extends {
     log: {} | undefined;
     event: {} | undefined;
@@ -188,14 +194,23 @@ export type LoggerOptions<
     log: {};
     event: {};
     mark: {};
+  },
+  Meta extends {
+    log: {};
+    event: {};
+    mark: {};
+  } = {
+    log: {};
+    event: {};
+    mark: {};
   }
 > = {
-  onLog: OnLog<Meta["log"], Options["log"]>;
-  onEvent: OnEvent<Events, Meta["event"], Options["event"]>;
-  onMark: OnMark<Marks, Meta["mark"], Options["mark"]>;
+  onLog: OnLog<Options["log"], Meta["log"]>;
+  onEvent: OnEvent<Events, Options["event"], Meta["event"]>;
+  onMark: OnMark<Marks, Options["mark"], Meta["mark"]>;
 };
 
-export function createLogger<
+export type Logger<
   Events extends Record<string, unknown> = Record<string, unknown>,
   Marks extends Record<string, Record<string, unknown>> = Record<
     string,
@@ -205,22 +220,46 @@ export function createLogger<
     log: {};
     event: {};
     mark: {};
-  } = {
-    log: DefaultMeta;
-    event: DefaultMeta;
-    mark: DefaultMeta;
-  },
+  } = DefaultMeta,
   Options extends {
     log: {} | undefined;
     event: {} | undefined;
     mark: {} | undefined;
-  } = {
-    log: DefaultOptions;
-    event: DefaultOptions;
-    mark: DefaultOptions;
-  }
+  } = DefaultOptions
+> = PlainLogger<Options["log"], Meta["log"]> & {
+  event: EventLogger<Events, Options["event"], Meta["event"]>;
+} & {
+  timeline: <T extends keyof Marks>(data: {
+    name: T;
+    onReady?: (self: Timeline<Marks[T], Options["mark"], Meta["mark"]>) => void;
+    onResolve?: (
+      self: Timeline<Marks[T], Options["mark"], Meta["mark"]>
+    ) => void;
+    onReject?: (
+      self: Timeline<Marks[T], Options["mark"], Meta["mark"]>,
+      reason: unknown
+    ) => void;
+  }) => Timeline<Marks[T], Options["mark"], Meta["mark"]>;
+};
+
+export function createLogger<
+  Events extends Record<string, unknown> = Record<string, unknown>,
+  Marks extends Record<string, Record<string, unknown>> = Record<
+    string,
+    Record<string, unknown>
+  >,
+  Options extends {
+    log: {} | undefined;
+    event: {} | undefined;
+    mark: {} | undefined;
+  } = DefaultOptions,
+  Meta extends {
+    log: {};
+    event: {};
+    mark: {};
+  } = DefaultMeta
 >(
-  loggerOptions: LoggerOptions<Events, Marks, Meta, Options> = {
+  loggerOptions: LoggerOptions<Events, Marks, Options, Meta> = {
     onEvent: ({ level, event, options, ...meta }) => {
       console[level]("[ilw/event]:", { event, options, meta });
     },
@@ -237,21 +276,7 @@ export function createLogger<
       });
     },
   }
-): Logger<Meta["log"], Options["log"]> & {
-  event: EventLogger<Events, Meta["event"], Options["event"]>;
-} & {
-  timeline: <T extends keyof Marks>(data: {
-    name: T;
-    onReady?: (self: Timeline<Marks[T], Meta["mark"], Options["mark"]>) => void;
-    onResolve?: (
-      self: Timeline<Marks[T], Meta["mark"], Options["mark"]>
-    ) => void;
-    onReject?: (
-      self: Timeline<Marks[T], Meta["mark"], Options["mark"]>,
-      reason: unknown
-    ) => void;
-  }) => Timeline<Marks[T], Meta["mark"], Options["mark"]>;
-} {
+): Logger<Events, Marks, Meta, Options> {
   const createLogger = (level: Level) => {
     return ({
       message,
@@ -321,7 +346,7 @@ export function createLogger<
         }[keyof Marks[N]]
       ) => void = (level) => {
         return ({ name, data, message, options, ...meta }) => {
-          const onMarkData: OnMarkData<Marks, Meta["mark"], Options["mark"]> = {
+          const onMarkData: OnMarkData<Marks, Options["mark"], Meta["mark"]> = {
             ...(meta as unknown as Meta["mark"]),
             timeline: {
               name: timelineName,
@@ -334,7 +359,7 @@ export function createLogger<
           loggerOptions.onMark(onMarkData);
         };
       };
-      type InnerTimeline = Timeline<Marks[N], Meta["mark"], Options["mark"]>;
+      type InnerTimeline = Timeline<Marks[N], Options["mark"], Meta["mark"]>;
       const createTimeline = (parentHandle: {
         resolve: (timeline: InnerTimeline) => void;
         reject: (timeline: InnerTimeline, reason: unknown) => void;
