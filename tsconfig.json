@@ -8,5 +8,5 @@
     "moduleResolution": "node",
     "declaration": true
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
