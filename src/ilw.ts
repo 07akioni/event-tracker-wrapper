@@ -1,5 +1,19 @@
 export type Level = "debug" | "info" | "warn" | "error";
 
+let _performance: { now: () => number } | undefined;
+
+function perfNow(): number {
+  if (!_performance) {
+    if (typeof performance === "undefined") {
+      // @ts-ignore
+      _performance = require("perf_hooks").performance;
+    } else {
+      _performance = performance;
+    }
+  }
+  return _performance!.now();
+}
+
 type DefaultLogMeta = {};
 type DefaultEventMeta = {};
 type DefaultMarkMeta = {};
@@ -47,11 +61,11 @@ export type OnEvent<
   data: {
     level: Level;
     event: {
-      [Key in keyof Events]: {
+      [Key in keyof Events & string]: {
         name: Key;
         message: string | undefined;
       } & OnLogData<Events[Key]>;
-    }[keyof Events];
+    }[keyof Events & string];
     options: Options;
   } & Meta
 ) => void;
@@ -64,21 +78,21 @@ export type OnMarkData<
   Options = DefaultMarkOptions,
   Meta = DefaultMarkMeta
 > = {
-  [TimelineName in keyof Marks]: {
+  [TimelineName in keyof Marks & string]: {
     level: Level;
     duration: number;
     timeline: {
       name: TimelineName;
     };
     mark: {
-      [MarkName in keyof Marks[TimelineName]]: {
+      [MarkName in keyof Marks[TimelineName] & string]: {
         name: MarkName;
         message: string | undefined;
       } & OnLogData<Marks[TimelineName][MarkName]>;
-    }[keyof Marks[TimelineName]];
+    }[keyof Marks[TimelineName] & string];
   } & Meta &
     OnLogOptions<Options>;
-}[keyof Marks];
+}[keyof Marks & string];
 
 export type OnMark<
   Marks extends Record<string, Record<string, unknown>> = Record<
@@ -103,13 +117,13 @@ export type Timeline<
   Meta = DefaultMarkMeta,
   Log = (
     data: {
-      [MarkName in keyof Marks]: {
+      [MarkName in keyof Marks & string]: {
         name: MarkName;
         message?: string;
       } & OnLogData<Marks[MarkName]> &
         Meta &
         OnLogOptions<Options>;
-    }[keyof Marks]
+    }[keyof Marks & string]
   ) => void
 > = {
   all: <T extends number>(
@@ -165,13 +179,13 @@ export type EventLogger<
   Meta = undefined,
   Log = (
     event: {
-      [EventName in keyof Events]: {
+      [EventName in keyof Events & string]: {
         name: EventName;
         message?: string;
       } & OnLogData<Events[EventName]> &
         Meta &
         OnLogOptions<Options>;
-    }[keyof Events]
+    }[keyof Events & string]
   ) => void
 > = {
   debug: Log;
@@ -229,7 +243,7 @@ export type Logger<
 > = PlainLogger<Options["log"], Meta["log"]> & {
   event: EventLogger<Events, Options["event"], Meta["event"]>;
 } & {
-  timeline: <T extends keyof Marks>(data: {
+  timeline: <T extends keyof Marks & string>(data: {
     name: T;
     onReady?: (self: Timeline<Marks[T], Options["mark"], Meta["mark"]>) => void;
     onResolve?: (
@@ -261,20 +275,17 @@ export function createLogger<
 >(
   loggerOptions: LoggerOptions<Events, Marks, Options, Meta> = {
     onEvent: ({ level, event, options, ...meta }) => {
-      console[level]("[ilw/event]:", { event, options, meta });
+      console[level](
+        `${level.toUpperCase()}_EVENT[${event.name}] `,
+        event.message || ""
+      );
     },
     onLog: ({ level, message, options, ...meta }) => {
-      console[level]("[ilw/log]:", { message, options, meta });
+      console[level](`${level.toUpperCase()}`, message);
     },
     onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
-      console[level]("[ilw/mark]:", {
-        timeline,
-        mark,
-        duration,
-        options,
-        meta,
-      });
-    },
+      console[level](`${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${timeline.name} ${duration.toFixed(2)}ms)`)
+    }
   }
 ): Logger<Events, Marks, Meta, Options> {
   const createLogger = (level: Level) => {
@@ -302,13 +313,13 @@ export function createLogger<
       options,
       ...meta
     }: {
-      [EventName in keyof Events]: {
+      [EventName in keyof Events & string]: {
         name: EventName;
         message?: string;
       } & OnLogData<Events[EventName]> &
         Meta["event"] &
         OnLogOptions<Options["event"]>;
-    }[keyof Events]) => {
+    }[keyof Events & string]) => {
       loggerOptions.onEvent({
         ...(meta as unknown as Meta),
         level,
@@ -337,13 +348,13 @@ export function createLogger<
       type N = typeof timelineName;
       const createTimelineLogger: (level: Level) => (
         mark: {
-          [MarkName in keyof Marks[N]]: {
+          [MarkName in keyof Marks[N] & string]: {
             name: MarkName;
             message?: string;
           } & OnLogData<Marks[N][MarkName]> &
             OnLogOptions<Options["mark"]> &
             Meta["mark"];
-        }[keyof Marks[N]]
+        }[keyof Marks[N] & string]
       ) => void = (level) => {
         return ({ name, data, message, options, ...meta }) => {
           const onMarkData: OnMarkData<Marks, Options["mark"], Meta["mark"]> = {
@@ -354,7 +365,7 @@ export function createLogger<
             level,
             mark: { name, message, data } as any,
             options,
-            duration: inReadyScope ? 0 : performance.now() - startTime,
+            duration: inReadyScope ? 0 : perfNow() - startTime,
           };
           loggerOptions.onMark(onMarkData);
         };
@@ -474,7 +485,7 @@ export function createLogger<
           onReject?.(timeline, reason);
         },
       });
-      const startTime = performance.now();
+      const startTime = perfNow();
       if (onReady) {
         onReady(timeline);
       }
