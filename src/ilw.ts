@@ -1,3 +1,5 @@
+import {formatLevel} from './utils'
+
 export type Level = "debug" | "info" | "warn" | "error";
 
 let _performance: { now: () => number } | undefined;
@@ -274,17 +276,19 @@ export function createLogger<
   } = DefaultMeta
 >(
   loggerOptions: LoggerOptions<Events, Marks, Options, Meta> = {
-    onEvent: ({ level, event, options, ...meta }) => {
+    onEvent: ({ level, event }) => {
       console[level](
-        `${level.toUpperCase()}_EVENT[${event.name}] `,
+        formatLevel(level),
+        'EVENT',
+        `[${event.name}]`,
         event.message || ""
       );
     },
-    onLog: ({ level, message, options, ...meta }) => {
-      console[level](`${level.toUpperCase()}`, message);
+    onLog: ({ level, message }) => {
+      console[level](formatLevel(level), 'LOG  ', message);
     },
-    onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
-      console[level](`${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${timeline.name} ${duration.toFixed(2)}ms)`)
+    onMark: ({ level, mark, timeline, duration }) => {
+      console[level](formatLevel(level), 'MARK ', `[${timeline.name}.${mark.name}][${duration.toFixed(2)}ms] ${mark.message}`)
     }
   }
 ): Logger<Events, Marks, Meta, Options> {
