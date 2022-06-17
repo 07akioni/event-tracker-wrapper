@@ -1,4 +1,4 @@
-import {formatLevel} from './utils'
+import { formatLevel } from "./utils";
 
 export type Level = "debug" | "info" | "warn" | "error";
 
@@ -258,6 +258,10 @@ export type Logger<
   }) => Timeline<Marks[T], Options["mark"], Meta["mark"]>;
 };
 
+function getTime() {
+  return new Date().toISOString();
+}
+
 export function createLogger<
   Events extends Record<string, unknown> = Record<string, unknown>,
   Marks extends Record<string, Record<string, unknown>> = Record<
@@ -278,18 +282,26 @@ export function createLogger<
   loggerOptions: LoggerOptions<Events, Marks, Options, Meta> = {
     onEvent: ({ level, event }) => {
       console[level](
+        getTime(),
         formatLevel(level),
-        'EVENT',
+        "EVENT",
         `[${event.name}]`,
         event.message || ""
       );
     },
     onLog: ({ level, message }) => {
-      console[level](formatLevel(level), 'LOG  ', message);
+      console[level](getTime(), formatLevel(level), "LOG  ", message);
     },
     onMark: ({ level, mark, timeline, duration }) => {
-      console[level](formatLevel(level), 'MARK ', `[${timeline.name}.${mark.name}][${duration.toFixed(2)}ms] ${mark.message}`)
-    }
+      console[level](
+        getTime(),
+        formatLevel(level),
+        "MARK ",
+        `[${timeline.name}.${mark.name}][${duration.toFixed(2)}ms] ${
+          mark.message
+        }`
+      );
+    },
   }
 ): Logger<Events, Marks, Meta, Options> {
   const createLogger = (level: Level) => {
