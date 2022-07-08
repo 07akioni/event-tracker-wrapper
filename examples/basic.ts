@@ -1,42 +1,98 @@
-import { performance } from "perf_hooks";
-import { ilw } from "../src";
+import { createLogger } from "../src";
 
 type Events = {
-  aaa: { value: number };
-  bbb: { value: string };
+  departmentClick: { departmentId: string };
 };
 
-const logger = ilw<unknown, Events>({
-  onLog(level, messages, { meta, persist, report }) {
-    console[level](level, { meta, persist, report }, ...messages);
-  },
-  onEvent(level, event, { meta, persist, report }) {
-    console[level](
-      level,
-      { meta, persist, report },
-      "event-type",
-      event.type,
-      "event-detail",
-      event.detail
-    );
+type Timelines = {
+  document: {
+    fcp: undefined;
+  };
+  detailFetchData: {
+    start: undefined;
+    success: undefined;
+    fail: Error;
+    fetchProcessRelevantUsersDataSuccess: undefined;
+    fetchProcessRelevantUsersDataFail: undefined;
+    fetchDetailDataSuccess: undefined;
+    fetchDetailDataFail: undefined;
+    fetchApprovalDataSuccess: undefined;
+    fetchApprovalDataFail: undefined;
+  };
+};
+
+const log = createLogger<
+  Events,
+  Timelines,
+  {
+    log: { toast: boolean; showToastIcon?: boolean };
+    event: undefined;
+    mark: undefined;
+  }
+>();
+
+log.event.info({
+  name: "departmentClick",
+  data: {
+    departmentId: "xxx",
   },
 });
 
-// report 上报
-logger.report.info("xxx", "yyy");
-// persist 持久化
-logger.persist.info("xxx", "yyy");
-// event type 事件格式
-logger.event.info("aaa", { value: 2 });
-// Meta
-logger.meta({ foo: "bar" }).info("xxx");
-// any combinations 随意组合
-logger.persist.report.info("xx", "yyy");
+log.info({
+  message: "1234",
+  options: { toast: true, showToastIcon: false },
+});
 
-// Use it like currify a function
-// 也可以利用类似柯里化的方式
-const persistLogger = logger.persist;
-persistLogger.info("xxx", "yyy");
+const documentTimeline = log.timeline({ name: "document" });
 
-const operationLogger = logger.meta({ scope: "operation" });
-operationLogger.error("oops", "Error");
+const timeline = log.timeline({
+  name: "detailFetchData",
+  onReady(self) {
+    self.info({
+      name: "start",
+      message: "开始获取单据详情信息",
+    });
+  },
+  onResolve(self) {
+    self.info({
+      name: "success",
+      message: "单据详情获取成功",
+    });
+  },
+  onReject(self, reason) {
+    self.error({
+      name: "fail",
+      message: "单据详情获取失败",
+      data: reason as Error,
+    });
+  },
+});
+
+const [
+  fetchProcessRelevantUsersDataTimeline,
+  fetchDetailDataTimeline,
+  fetchApprovalDataTimeline,
+] = timeline.all(3);
+
+fetchProcessRelevantUsersDataTimeline.info({
+  name: "fetchProcessRelevantUsersDataSuccess",
+  message: "获取流程干系人成功",
+});
+fetchProcessRelevantUsersDataTimeline.resolve();
+
+fetchDetailDataTimeline.info({
+  name: "fetchDetailDataSuccess",
+  message: "获取表单详情成功",
+});
+fetchDetailDataTimeline.resolve();
+
+fetchApprovalDataTimeline.error({
+  name: "fetchApprovalDataFail",
+  message: "获取审批组件信息失败",
+});
+fetchApprovalDataTimeline.reject();
+
+documentTimeline.info({
+  name: "fcp",
+  message: "document fcp",
+});
