@@ -5,8 +5,12 @@ let _performance: { now: () => number } | undefined;
 function perfNow(): number {
   if (!_performance) {
     if (typeof performance === "undefined") {
-      // @ts-ignore
-      _performance = require("perf_hooks").performance;
+      try {
+        // @ts-ignore
+        _performance = require("perf_hooks").performance;
+      } catch (_) {
+        return Date.now();
+      }
     } else {
       _performance = performance;
     }
@@ -284,8 +288,12 @@ export function createLogger<
       console[level](`${level.toUpperCase()}`, message);
     },
     onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
-      console[level](`${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${timeline.name} ${duration.toFixed(2)}ms)`)
-    }
+      console[level](
+        `${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${
+          timeline.name
+        } ${duration.toFixed(2)}ms)`
+      );
+    },
   }
 ): Logger<Events, Marks, Meta, Options> {
   const createLogger = (level: Level) => {
