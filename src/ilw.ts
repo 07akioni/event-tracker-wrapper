@@ -223,9 +223,9 @@ export type LoggerOptions<
     mark: {};
   }
 > = {
-  onLog: OnLog<Options["log"], Meta["log"]>;
-  onEvent: OnEvent<Events, Options["event"], Meta["event"]>;
-  onMark: OnMark<Marks, Options["mark"], Meta["mark"]>;
+  onLog?: OnLog<Options["log"], Meta["log"]>;
+  onEvent?: OnEvent<Events, Options["event"], Meta["event"]>;
+  onMark?: OnMark<Marks, Options["mark"], Meta["mark"]>;
 };
 
 export type Logger<
@@ -276,26 +276,29 @@ export function createLogger<
     event: {};
     mark: {};
   } = DefaultMeta
->(
-  loggerOptions: LoggerOptions<Events, Marks, Options, Meta> = {
-    onEvent: ({ level, event, options, ...meta }) => {
-      console[level](
-        `${level.toUpperCase()}_EVENT[${event.name}] `,
-        event.message || ""
-      );
-    },
-    onLog: ({ level, message, options, ...meta }) => {
-      console[level](`${level.toUpperCase()}`, message);
-    },
-    onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
-      console[level](
-        `${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${
-          timeline.name
-        } ${duration.toFixed(2)}ms)`
-      );
-    },
-  }
-): Logger<Events, Marks, Meta, Options> {
+>({
+  onEvent = ({ level, event, options, ...meta }) => {
+    console[level](
+      `${level.toUpperCase()}_EVENT[${event.name}] `,
+      event.message || ""
+    );
+  },
+  onLog = ({ level, message, options, ...meta }) => {
+    console[level](`${level.toUpperCase()}`, message);
+  },
+  onMark = ({ level, mark, timeline, duration, options, ...meta }) => {
+    console[level](
+      `${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${
+        timeline.name
+      } ${duration.toFixed(2)}ms)`
+    );
+  },
+}: LoggerOptions<Events, Marks, Options, Meta> = {}): Logger<
+  Events,
+  Marks,
+  Meta,
+  Options
+> {
   const createLogger = (level: Level) => {
     return ({
       message,
@@ -305,7 +308,7 @@ export function createLogger<
       message?: string;
     } & Meta["log"] &
       OnLogOptions<Options["log"]>) => {
-      loggerOptions.onLog({
+      onLog({
         ...meta,
         level,
         message,
@@ -328,7 +331,7 @@ export function createLogger<
         Meta["event"] &
         OnLogOptions<Options["event"]>;
     }[keyof Events & string]) => {
-      loggerOptions.onEvent({
+      onEvent({
         ...(meta as unknown as Meta),
         level,
         event: {
@@ -375,7 +378,7 @@ export function createLogger<
             options,
             duration: inReadyScope ? 0 : perfNow() - startTime,
           };
-          loggerOptions.onMark(onMarkData);
+          onMark(onMarkData);
         };
       };
       type InnerTimeline = Timeline<Marks[N], Options["mark"], Meta["mark"]>;

@@ -29,7 +29,31 @@ const log = createLogger<
     event: undefined;
     mark: undefined;
   }
->();
+>({
+  // not required, it has default value
+  onLog(data) {
+    data.level;
+    data.message;
+    data.options;
+    // do something with data
+  },
+  // not required, it has default value
+  onEvent(data) {
+    data.event;
+    data.level;
+    data.options;
+    // do something with data
+  },
+  // not required, it has default value
+  onMark(data) {
+    data.duration;
+    data.level;
+    data.mark;
+    data.options;
+    data.timeline;
+    // do something with data
+  },
+});
 
 log.event.info({
   name: "departmentClick",
