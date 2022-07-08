@@ -9,7 +9,7 @@ function perfNow(): number {
         // @ts-ignore
         _performance = require("perf_hooks").performance;
       } catch (_) {
-        return Date.now();
+        _performance = { now: Date.now };
       }
     } else {
       _performance = performance;
