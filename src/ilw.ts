@@ -1,5 +1,3 @@
-import { formatLevel } from "./utils";
-
 export type Level = "debug" | "info" | "warn" | "error";
 
 let _performance: { now: () => number } | undefined;
@@ -258,10 +256,6 @@ export type Logger<
   }) => Timeline<Marks[T], Options["mark"], Meta["mark"]>;
 };
 
-function getTime() {
-  return new Date().toISOString();
-}
-
 export function createLogger<
   Events extends Record<string, unknown> = Record<string, unknown>,
   Marks extends Record<string, Record<string, unknown>> = Record<
@@ -280,28 +274,18 @@ export function createLogger<
   } = DefaultMeta
 >(
   loggerOptions: LoggerOptions<Events, Marks, Options, Meta> = {
-    onEvent: ({ level, event }) => {
+    onEvent: ({ level, event, options, ...meta }) => {
       console[level](
-        getTime(),
-        formatLevel(level),
-        "EVENT",
-        `[${event.name}]`,
+        `${level.toUpperCase()}_EVENT[${event.name}] `,
         event.message || ""
       );
     },
-    onLog: ({ level, message }) => {
-      console[level](getTime(), formatLevel(level), "LOG  ", message);
+    onLog: ({ level, message, options, ...meta }) => {
+      console[level](`${level.toUpperCase()}`, message);
     },
-    onMark: ({ level, mark, timeline, duration }) => {
-      console[level](
-        getTime(),
-        formatLevel(level),
-        "MARK ",
-        `[${timeline.name}.${mark.name}][${duration.toFixed(2)}ms] ${
-          mark.message
-        }`
-      );
-    },
+    onMark: ({ level, mark, timeline, duration, options, ...meta }) => {
+      console[level](`${level.toUpperCase()}_MARK[${mark.name}] ${mark.message} (at ${timeline.name} ${duration.toFixed(2)}ms)`)
+    }
   }
 ): Logger<Events, Marks, Meta, Options> {
   const createLogger = (level: Level) => {
