@@ -1,6 +1,6 @@
 {
   "name": "event-tracker-wrapper",
-  "version": "0.4.3",
+  "version": "1.0.0",
   "description": "provide unified interface for event tracking",
   "main": "lib/index.js",
   "module": "es/index.js",
