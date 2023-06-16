@@ -76,11 +76,20 @@ tracker.info({
 2. 如何延时上报？为什么需要延时上报？
 
 ```ts
-const tracker = createEventTracker<Events>({
+import type { Reporter } from "takes-long-time-to-import-reporter";
+
+// in package-a
+export const tracker = createEventTracker<Events, Reporter>({
   autostart: false,
 });
 
-setTimeout(() => {
-  tracker.start(undefined);
-}, 1000);
+// in package-b
+import { tracker } from "package-a";
+
+// after TTI
+{
+  import("takes-long-time-to-import-reporter").then((reporter) => {
+    tracker.start(reporter);
+  });
+}
 ```

@@ -76,11 +76,20 @@ tracker.info({
 2. How to delay event tracking?
 
 ```ts
-const tracker = createEventTracker<Events>({
+import type { Reporter } from "takes-long-time-to-import-reporter";
+
+// in package-a
+export const tracker = createEventTracker<Events, Reporter>({
   autostart: false,
 });
 
-setTimeout(() => {
-  tracker.start();
-}, 1000);
+// in package-b
+import { tracker } from "package-a";
+
+// after TTI
+{
+  import("takes-long-time-to-import-reporter").then((reporter) => {
+    tracker.start(reporter);
+  });
+}
 ```
