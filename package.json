@@ -1,7 +1,7 @@
 {
-  "name": "ilw",
+  "name": "event-tracker-wrapper",
   "version": "0.4.3",
-  "description": "Isomorphic logger wrapper",
+  "description": "provide unified interface for event tracking",
   "main": "lib/index.js",
   "module": "es/index.js",
   "scripts": {
@@ -16,9 +16,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^27.4.0",
-    "esno": "^0.14.1",
     "jest": "^27.5.0",
-    "typescript": "^4.5.5"
+    "tsx": "^3.12.7",
+    "typescript": "^5"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"

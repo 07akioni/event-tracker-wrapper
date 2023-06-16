@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2018",
     "strict": true,
     "noImplicitAny": true,
     "forceConsistentCasingInFileNames": true,
