@@ -76,6 +76,7 @@ tracker.info({
 2. 如何延时上报？为什么需要延时上报？
 
 ```ts
+import { createEventTracker } from "event-tracker-wrapper";
 import type { Reporter } from "takes-long-time-to-import-reporter";
 
 // in package-a

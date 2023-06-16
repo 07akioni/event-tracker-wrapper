@@ -76,6 +76,7 @@ tracker.info({
 2. How to delay event tracking?
 
 ```ts
+import { createEventTracker } from "event-tracker-wrapper";
 import type { Reporter } from "takes-long-time-to-import-reporter";
 
 // in package-a
