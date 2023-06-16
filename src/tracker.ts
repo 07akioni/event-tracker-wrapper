@@ -1,40 +1,38 @@
 export type Level = "debug" | "info" | "warn" | "error";
 
 type EventsConstraint = Record<Level, Record<string, unknown>>;
-type MetaConstraint = {};
-type OptionsConstraint = {} | undefined;
-type DefaultMeta = {};
-type DefaultOptions = undefined;
+type EventOptionsConstraint = {} | undefined;
+type DefaultStartOptions = undefined;
+type DefaultEventOptions = undefined;
 
 export type OnEventPayload<Payload> = undefined extends Payload
   ? { payload?: Payload }
   : { payload: Payload };
 
-export type OnEventOptions<Options> = undefined extends Options
-  ? { options?: Options }
-  : { options: Options };
+export type OnEventOptions<EventOptions> = undefined extends EventOptions
+  ? { options?: EventOptions }
+  : { options: EventOptions };
 
 export type OnEvent<
   Events extends EventsConstraint,
-  Options extends OptionsConstraint = DefaultOptions,
-  Meta extends MetaConstraint = DefaultMeta
-> = <L extends Level>(
-  payload: {
-    level: L;
-    event: {
-      [Key in keyof Events & string]: {
-        name: Key;
-        message: string;
-      } & OnEventPayload<Events[L][Key]>;
-    }[keyof Events[L] & string];
-    options: Options;
-  } & Meta
-) => void;
+  StartOptions = DefaultStartOptions,
+  EventOptions extends EventOptionsConstraint = DefaultEventOptions
+> = <L extends Level>(arg: {
+  level: L;
+  event: {
+    [Key in keyof Events & string]: {
+      name: Key;
+      message: string;
+    } & OnEventPayload<Events[L][Key]>;
+  }[keyof Events[L] & string];
+  options: EventOptions;
+  startOptions: StartOptions;
+}) => void;
 
 export type EventTracker<
   Events extends EventsConstraint,
-  Options extends OptionsConstraint = DefaultOptions,
-  Meta extends MetaConstraint = DefaultMeta
+  StartOptions = DefaultStartOptions,
+  EventOptions extends EventOptionsConstraint = DefaultEventOptions
 > = {
   [K in Level]: (
     event: {
@@ -42,73 +40,77 @@ export type EventTracker<
         name: EventName;
         message: string;
       } & OnEventPayload<Events[K][EventName]> &
-        Meta &
-        OnEventOptions<Options>;
+        OnEventOptions<EventOptions>;
     }[keyof Events[K] & string]
   ) => void;
 } & {
-  start: () => void;
+  start: (payload: StartOptions) => void;
 };
 
 export type EventTrackerOptions<
   Events extends EventsConstraint,
-  Options extends OptionsConstraint = DefaultOptions,
-  Meta extends MetaConstraint = DefaultMeta
+  StartOptions = DefaultStartOptions,
+  EventOptions extends EventOptionsConstraint = DefaultEventOptions
 > = {
   autostart?: boolean;
-  onEvent?: OnEvent<Events, Options, Meta>;
+  onEvent?: OnEvent<Events, StartOptions, EventOptions>;
 };
 
 export function createEventTracker<
   Events extends EventsConstraint,
-  Options extends OptionsConstraint = DefaultOptions,
-  Meta extends MetaConstraint = DefaultMeta
+  StartOptions = DefaultStartOptions,
+  EventOptions extends EventOptionsConstraint = DefaultEventOptions
 >({
   autostart = true,
   onEvent = ({ level, event }) => {
     console[level](`[${level}] ${event.name}:`, event.message || "");
   },
-}: EventTrackerOptions<Events, Options, Meta> = {}): EventTracker<
+}: EventTrackerOptions<Events, StartOptions, EventOptions> = {}): EventTracker<
   Events,
-  Options,
-  Meta
+  StartOptions,
+  EventOptions
 > {
+  let startOptions: StartOptions | "__notInitialized__" = "__notInitialized__";
   let started = autostart;
-  const queuedArgs: Array<{ level: Level; arg: unknown }> = [];
+  const queuedArgs: Array<{ level: Level; event: unknown }> = [];
   const createTrackMethod = <L extends Level>(level: L) => {
     return (
-      arg: {
+      event: {
         [EventName in keyof Events[L] & string]: {
           name: EventName;
           message: string;
         } & OnEventPayload<Events[L][EventName]> &
-          Meta &
-          OnEventOptions<Options>;
+          OnEventOptions<EventOptions>;
       }[keyof Events & string]
     ): void => {
       if (!started) {
-        queuedArgs.push({ level, arg });
+        queuedArgs.push({ level, event });
         return;
       }
-      const { name, message, payload, options, ...meta } = arg;
+      const { name, message, payload, options } = event;
+      if (startOptions === "__notInitialized__")
+        throw new Error(
+          "[event-tracker-wrapper]: `startOptions` is not initialized."
+        );
       onEvent({
-        ...(meta as unknown as Meta),
         level,
         event: {
           name,
           message,
           payload: payload as any,
         },
-        options: options as Options,
+        options: options as EventOptions,
+        startOptions,
       });
     };
   };
-  const api = {
-    start: () => {
+  const api: EventTracker<Events, StartOptions, EventOptions> = {
+    start: (options) => {
+      startOptions = options;
       if (!started) {
         started = true;
-        queuedArgs.forEach(({ level, arg }) => {
-          api[level](arg as any);
+        queuedArgs.forEach(({ level, event }) => {
+          api[level](event as any);
         });
         queuedArgs.length = 0;
       }

@@ -12,8 +12,14 @@ type Events = {
 
 const tracker = createEventTracker<
   Events,
+  { api: any },
   { toast: boolean; showToastIcon?: boolean } | undefined
->({ autostart: false });
+>({
+  autostart: false,
+  onEvent({ startOptions }) {
+    startOptions.api;
+  },
+});
 
 tracker.info({
   name: "DEPARTMENT_CLICK",
@@ -29,5 +35,5 @@ tracker.info({
 });
 
 setTimeout(() => {
-  tracker.start();
+  tracker.start({ api: {} });
 }, 1000);

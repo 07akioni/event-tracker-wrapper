@@ -11,33 +11,30 @@
 #### `createEventTracker`
 
 ```ts
-function createEventTracker<Events, Options, Meta>(
-  options: EventTrackerOptions<Events, Options, Meta>
-): EventTracker<Events, Options, Meta>;
+function createEventTracker<Events, StartOptions, EventOptions>(
+  options: EventTrackerOptions<Events, StartOptions, EventOptions>
+): EventTracker<Events, StartOptions, EventOptions>;
 
-type EventTrackerOptions<Events, Options, Meta> = {
+type EventTrackerOptions<Events, StartOptions, EventOptions> = {
   autostart?: boolean;
-  onEvent?: (
-    options: {
-      level: "debug" | "info" | "warn" | "error";
-      name: string;
-      message: string;
-      payload: unknown;
-      options: Options;
-    } & Meta
-  ) => void;
+  onEvent?: (arg: {
+    level: "debug" | "info" | "warn" | "error";
+    name: string;
+    message: string;
+    payload: unknown;
+    options: EventOptions;
+    startOptions: StartOptions;
+  }) => void;
 };
 
-type EventTracker<Events, Options, Meta> = {
+type EventTracker<Events, StartOptions, EventOptions> = {
   start: () => void;
-  debug: (
-    options: {
-      name: string;
-      message: string;
-      payload: unknown;
-      options: Options;
-    } & Meta
-  ) => void;
+  debug: (event: {
+    name: string;
+    message: string;
+    payload: unknown;
+    options: EventOptions;
+  }) => void;
   info: Function; // same as debug
   warn: Function; // same as debug
   error: Function; // same as debug
@@ -84,6 +81,6 @@ const tracker = createEventTracker<Events>({
 });
 
 setTimeout(() => {
-  tracker.start();
+  tracker.start(undefined);
 }, 1000);
 ```
