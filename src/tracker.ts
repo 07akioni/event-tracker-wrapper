@@ -54,6 +54,10 @@ export type EventTrackerOptions<
 > = {
   autostart?: boolean;
   onEvent?: OnEvent<Events, StartOptions, EventOptions>;
+  onStart?: (
+    startOptions: StartOptions,
+    tracker: EventTracker<Events, StartOptions, EventOptions>
+  ) => void;
 };
 
 export function createEventTracker<
@@ -64,6 +68,9 @@ export function createEventTracker<
   autostart = true,
   onEvent = ({ level, event }) => {
     console[level](`[${level}] ${event.name}:`, event.message || "");
+  },
+  onStart = () => {
+    console.log("start tracking events");
   },
 }: EventTrackerOptions<Events, StartOptions, EventOptions> = {}): EventTracker<
   Events,
@@ -109,6 +116,7 @@ export function createEventTracker<
       startOptions = options;
       if (!started) {
         started = true;
+        onStart?.(options, api);
         queuedArgs.forEach(({ level, event }) => {
           api[level](event as any);
         });
