@@ -141,7 +141,9 @@ export function withPayload<T extends EventTracker<any, any, any>>(
     },
     debug: (event) => {
       tracker.debug({
-        ...event,
+        name: event.name,
+        message: event.message,
+        options: event.options,
         payload: {
           ...payload,
           ...event.payload,
@@ -150,7 +152,9 @@ export function withPayload<T extends EventTracker<any, any, any>>(
     },
     info: (event) => {
       tracker.info({
-        ...event,
+        name: event.name,
+        message: event.message,
+        options: event.options,
         payload: {
           ...payload,
           ...event.payload,
@@ -159,7 +163,9 @@ export function withPayload<T extends EventTracker<any, any, any>>(
     },
     warn: (event) => {
       tracker.warn({
-        ...event,
+        name: event.name,
+        message: event.message,
+        options: event.options,
         payload: {
           ...payload,
           ...event.payload,
@@ -168,7 +174,9 @@ export function withPayload<T extends EventTracker<any, any, any>>(
     },
     error: (event) => {
       tracker.error({
-        ...event,
+        name: event.name,
+        message: event.message,
+        options: event.options,
         payload: {
           ...payload,
           ...event.payload,
