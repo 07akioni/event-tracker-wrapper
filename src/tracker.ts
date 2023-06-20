@@ -14,17 +14,15 @@ export type OnEventOptions<EventOptions> = undefined extends EventOptions
   : { options: EventOptions };
 
 export type OnEvent<
-  Events extends EventsConstraint,
   StartOptions = DefaultStartOptions,
   EventOptions extends EventOptionsConstraint = DefaultEventOptions
-> = <L extends Level>(arg: {
-  level: L;
+> = (arg: {
+  level: Level;
   event: {
-    [Key in keyof Events & string]: {
-      name: Key;
-      message: string;
-    } & OnEventPayload<Events[L][Key]>;
-  }[keyof Events[L] & string];
+    name: string;
+    message: string;
+    payload: unknown;
+  };
   options: EventOptions;
   startOptions: StartOptions;
 }) => void;
@@ -53,7 +51,7 @@ export type EventTrackerOptions<
   EventOptions extends EventOptionsConstraint = DefaultEventOptions
 > = {
   autostart?: boolean;
-  onEvent?: OnEvent<Events, StartOptions, EventOptions>;
+  onEvent?: OnEvent<StartOptions, EventOptions>;
   onStart?: (
     startOptions: StartOptions,
     tracker: EventTracker<Events, StartOptions, EventOptions>
