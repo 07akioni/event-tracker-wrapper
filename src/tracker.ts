@@ -42,7 +42,7 @@ export type EventTracker<
     }[keyof Events[K] & string]
   ) => void;
 } & {
-  start: (payload: StartOptions) => void;
+  start: (options: StartOptions) => void;
 };
 
 export type EventTrackerOptions<
@@ -127,4 +127,53 @@ export function createEventTracker<
     error: createTrackMethod("error"),
   };
   return api;
+}
+
+export function withPayload<T extends EventTracker<any, any, any>>(
+  tracker: T,
+  payload: any
+): T {
+  return {
+    start() {
+      throw new Error(
+        "[event-tracker-wrapper]: please don't call `start` in a tracker created by `withPayload`"
+      );
+    },
+    debug: (event) => {
+      tracker.debug({
+        ...event,
+        payload: {
+          ...payload,
+          ...event.payload,
+        },
+      });
+    },
+    info: (event) => {
+      tracker.info({
+        ...event,
+        payload: {
+          ...payload,
+          ...event.payload,
+        },
+      });
+    },
+    warn: (event) => {
+      tracker.warn({
+        ...event,
+        payload: {
+          ...payload,
+          ...event.payload,
+        },
+      });
+    },
+    error: (event) => {
+      tracker.error({
+        ...event,
+        payload: {
+          ...payload,
+          ...event.payload,
+        },
+      });
+    },
+  } satisfies EventTracker<any, any, any> as unknown as T;
 }
