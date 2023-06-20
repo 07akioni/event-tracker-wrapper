@@ -43,6 +43,9 @@ export type EventTracker<
   ) => void;
 } & {
   start: (options: StartOptions) => void;
+  withPayload: (
+    payload: unknown
+  ) => EventTracker<Events, StartOptions, EventOptions>;
 };
 
 export type EventTrackerOptions<
@@ -78,7 +81,10 @@ export function createEventTracker<
   let startOptions: StartOptions | "__notInitialized__" = "__notInitialized__";
   let started = autostart;
   const queuedArgs: Array<{ level: Level; event: unknown }> = [];
-  const createTrackMethod = <L extends Level>(level: L) => {
+  const createTrackMethod = <L extends Level>(
+    level: L,
+    payloadToBeMerged: unknown
+  ) => {
     return (
       event: {
         [EventName in keyof Events[L] & string]: {
@@ -102,86 +108,38 @@ export function createEventTracker<
         event: {
           name,
           message,
-          payload: payload as any,
+          payload:
+            payloadToBeMerged === undefined
+              ? payload
+              : ({ ...payloadToBeMerged, ...(payload as any) } as any),
         },
         options: options as EventOptions,
         startOptions,
       });
     };
   };
-  const api: EventTracker<Events, StartOptions, EventOptions> = {
-    start: (options) => {
-      startOptions = options;
-      if (!started) {
-        started = true;
-        onStart?.(options, api);
-        queuedArgs.forEach(({ level, event }) => {
-          api[level](event as any);
-        });
-        queuedArgs.length = 0;
-      }
-    },
-    debug: createTrackMethod("debug"),
-    info: createTrackMethod("info"),
-    warn: createTrackMethod("warn"),
-    error: createTrackMethod("error"),
-  };
-  return api;
-}
-
-export function withPayload<T extends EventTracker<any, any, any>>(
-  tracker: T,
-  payload: any
-): T {
-  return {
-    start() {
-      throw new Error(
-        "[event-tracker-wrapper]: please don't call `start` in a tracker created by `withPayload`"
-      );
-    },
-    debug: (event) => {
-      tracker.debug({
-        name: event.name,
-        message: event.message,
-        options: event.options,
-        payload: {
-          ...payload,
-          ...event.payload,
-        },
-      });
-    },
-    info: (event) => {
-      tracker.info({
-        name: event.name,
-        message: event.message,
-        options: event.options,
-        payload: {
-          ...payload,
-          ...event.payload,
-        },
-      });
-    },
-    warn: (event) => {
-      tracker.warn({
-        name: event.name,
-        message: event.message,
-        options: event.options,
-        payload: {
-          ...payload,
-          ...event.payload,
-        },
-      });
-    },
-    error: (event) => {
-      tracker.error({
-        name: event.name,
-        message: event.message,
-        options: event.options,
-        payload: {
-          ...payload,
-          ...event.payload,
-        },
-      });
-    },
-  } satisfies EventTracker<any, any, any> as unknown as T;
+  function createApi(
+    payloadToBeMerged: unknown
+  ): EventTracker<Events, StartOptions, EventOptions> {
+    const api: EventTracker<Events, StartOptions, EventOptions> = {
+      start: (options) => {
+        startOptions = options;
+        if (!started) {
+          started = true;
+          onStart?.(options, api);
+          queuedArgs.forEach(({ level, event }) => {
+            api[level](event as any);
+          });
+          queuedArgs.length = 0;
+        }
+      },
+      debug: createTrackMethod("debug", payloadToBeMerged),
+      info: createTrackMethod("info", payloadToBeMerged),
+      warn: createTrackMethod("warn", payloadToBeMerged),
+      error: createTrackMethod("error", payloadToBeMerged),
+      withPayload: (payload) => createApi(payload),
+    };
+    return api;
+  }
+  return createApi(undefined);
 }
