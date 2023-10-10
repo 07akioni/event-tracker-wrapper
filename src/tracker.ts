@@ -43,7 +43,7 @@ export type EventTracker<
   ) => void;
 } & {
   start: (options: StartOptions) => void;
-  withPayload: (
+  mergePayloadObjectWith: (
     payload: unknown
   ) => EventTracker<Events, StartOptions, EventOptions>;
 };
@@ -78,7 +78,7 @@ export function createEventTracker<
   StartOptions,
   EventOptions
 > {
-  let startOptions: StartOptions | "__notInitialized__" = "__notInitialized__";
+  let startOptions: StartOptions;
   let started = autostart;
   const queuedArgs: Array<{ level: Level; event: unknown }> = [];
   const createTrackMethod = <L extends Level>(
@@ -99,10 +99,6 @@ export function createEventTracker<
         return;
       }
       const { name, message, payload, options } = event;
-      if (startOptions === "__notInitialized__")
-        throw new Error(
-          "[event-tracker-wrapper]: `startOptions` is not initialized."
-        );
       onEvent({
         level,
         event: {
@@ -111,7 +107,7 @@ export function createEventTracker<
           payload:
             payloadToBeMerged === undefined
               ? payload
-              : ({ ...payloadToBeMerged, ...(payload as any) } as any),
+              : Object.assign({}, payloadToBeMerged, payload as any),
         },
         options: options as EventOptions,
         startOptions,
@@ -137,7 +133,7 @@ export function createEventTracker<
       info: createTrackMethod("info", payloadToBeMerged),
       warn: createTrackMethod("warn", payloadToBeMerged),
       error: createTrackMethod("error", payloadToBeMerged),
-      withPayload: (payload) => createApi(payload),
+      mergePayloadObjectWith: (payload) => createApi(payload),
     };
     return api;
   }
