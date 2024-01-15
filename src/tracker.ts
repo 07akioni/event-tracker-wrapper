@@ -1,6 +1,6 @@
 export type Level = "debug" | "info" | "warn" | "error";
 
-type EventsConstraint = Record<Level, Record<string, unknown>>;
+export type EventsConstraint = Record<Level, Record<string, unknown>>;
 type EventOptionsConstraint = {} | undefined;
 type DefaultStartOptions = undefined;
 type DefaultEventOptions = undefined;
