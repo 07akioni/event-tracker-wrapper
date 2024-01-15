@@ -2,8 +2,8 @@ export type Level = "debug" | "info" | "warn" | "error";
 
 export type EventsConstraint = Record<Level, Record<string, unknown>>;
 type EventOptionsConstraint = {} | undefined;
-type DefaultStartOptions = undefined;
-type DefaultEventOptions = undefined;
+export type DefaultStartOptions = undefined;
+export type DefaultEventOptions = undefined;
 
 export type OnEventPayload<Payload> = undefined extends Payload
   ? { payload?: Payload }
