@@ -25,6 +25,7 @@ export type OnEvent<
   };
   options: EventOptions;
   startOptions: StartOptions;
+  stack: string | undefined;
 }) => void;
 
 export type EventTracker<
@@ -85,7 +86,7 @@ export function createEventTracker<
     level: L,
     payloadToBeMerged: unknown
   ) => {
-    return (
+    return function eventTracker(
       event: {
         [EventName in keyof Events[L] & string]: {
           name: EventName;
@@ -93,10 +94,17 @@ export function createEventTracker<
         } & OnEventPayload<Events[L][EventName]> &
           OnEventOptions<EventOptions>;
       }[keyof Events & string]
-    ): void => {
+    ): void {
       if (!started) {
         queuedArgs.push({ level, event });
         return;
+      }
+      const stackObj = { stack: undefined };
+      if (
+        "captureStackTrace" in Error &&
+        typeof Error.captureStackTrace === "function"
+      ) {
+        Error.captureStackTrace(stackObj, eventTracker);
       }
       const { name, message, payload, options } = event;
       onEvent({
@@ -111,6 +119,7 @@ export function createEventTracker<
         },
         options: options as EventOptions,
         startOptions,
+        stack: stackObj.stack || new Error().stack,
       });
     };
   };
