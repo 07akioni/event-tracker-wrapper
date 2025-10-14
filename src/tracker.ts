@@ -86,7 +86,7 @@ export function createEventTracker<
     level: L,
     payloadToBeMerged: unknown
   ) => {
-    const fn = (
+    return function eventTracker(
       event: {
         [EventName in keyof Events[L] & string]: {
           name: EventName;
@@ -94,7 +94,7 @@ export function createEventTracker<
         } & OnEventPayload<Events[L][EventName]> &
           OnEventOptions<EventOptions>;
       }[keyof Events & string]
-    ): void => {
+    ): void {
       if (!started) {
         queuedArgs.push({ level, event });
         return;
@@ -104,7 +104,7 @@ export function createEventTracker<
         "captureStackTrace" in Error &&
         typeof Error.captureStackTrace === "function"
       ) {
-        Error.captureStackTrace(stackObj, fn);
+        Error.captureStackTrace(stackObj, eventTracker);
       }
       const { name, message, payload, options } = event;
       onEvent({
@@ -122,7 +122,6 @@ export function createEventTracker<
         stack: stackObj.stack || new Error().stack,
       });
     };
-    return fn;
   };
   function createApi(
     payloadToBeMerged: unknown
